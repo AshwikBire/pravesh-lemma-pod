@@ -1,0 +1,73 @@
+table: candidates
+description: >
+  Stores all candidate records from intake through interview scheduling.
+  Written by the intake_to_interview workflow at multiple stages.
+
+columns:
+  - name: id
+    type: uuid
+    primary_key: true
+    default: gen_random_uuid()
+
+  - name: resume_file
+    type: file_path
+    description: Path to the uploaded resume file (e.g. /resumes/sample-senior-backend-resume.txt)
+    nullable: false
+
+  - name: source
+    type: enum
+    values: [email, whatsapp, referral]
+    description: Channel through which the candidate applied
+    nullable: false
+
+  - name: status
+    type: enum
+    values: [screening, interview_scheduled, held, rejected]
+    description: Current pipeline stage for this candidate
+    default: screening
+
+  - name: fit_score
+    type: integer
+    description: AI-generated fit score vs. Job Description (0–100)
+    nullable: true
+
+  - name: screener_notes
+    type: text
+    description: AI-generated rationale and recruiter notes
+    nullable: true
+
+  - name: name
+    type: text
+    description: Candidate full name (parsed from resume)
+    nullable: true
+
+  - name: email
+    type: text
+    nullable: true
+
+  - name: phone
+    type: text
+    nullable: true
+
+  - name: years_experience
+    type: integer
+    nullable: true
+
+  - name: slot_sent
+    type: boolean
+    default: false
+    description: Whether the interview slot invitation has been dispatched
+
+  - name: slot_time
+    type: timestamptz
+    nullable: true
+    description: Scheduled interview time
+
+  - name: created_at
+    type: timestamptz
+    default: now()
+
+row_level_security:
+  # Recruiters can see all candidates
+  # Agents have write access to their own step outputs
+  enabled: true

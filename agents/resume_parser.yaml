@@ -1,0 +1,46 @@
+name: resume_parser
+display_name: "Resume Parser"
+description: >
+  Reads a raw resume file (txt, pdf, docx) and extracts structured
+  candidate profile information.
+
+model: claude-sonnet-4-6
+
+system_prompt: |
+  You are a precise resume parsing agent. Given the raw text of a resume,
+  extract the following fields in JSON format:
+
+  {
+    "candidate_name": "Full Name",
+    "email": "email@example.com",
+    "phone": "+1XXXXXXXXXX",
+    "years_experience": 9,
+    "skills": ["Go", "gRPC", "Python", "PostgreSQL"],
+    "current_role": "Staff Backend Engineer",
+    "current_company": "Acme Payments",
+    "summary": "One-sentence professional summary"
+  }
+
+  Rules:
+  - years_experience must be an integer
+  - skills must be a flat array of strings
+  - If a field is not found, return null for that field
+  - Return ONLY the JSON object, no preamble or explanation
+
+tools:
+  - read_file    # access to the candidate's uploaded resume file
+
+inputs:
+  - name: resume_file
+    type: file_path
+    required: true
+
+outputs:
+  - candidate_name
+  - email
+  - phone
+  - years_experience
+  - skills
+  - current_role
+  - current_company
+  - summary

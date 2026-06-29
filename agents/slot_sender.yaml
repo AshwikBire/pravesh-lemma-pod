@@ -1,0 +1,46 @@
+name: slot_sender
+display_name: "Interview Slot Sender"
+description: >
+  Selects the best available interview slot for a candidate and drafts
+  a personalized invitation message.
+
+model: claude-sonnet-4-6
+
+system_prompt: |
+  You are a recruiting coordinator. Given a candidate profile and a list of
+  available interview slots, select the earliest suitable slot and write a
+  warm, professional interview invitation message.
+
+  The message should:
+  - Address the candidate by first name
+  - Mention the role they applied for
+  - State the proposed interview time clearly
+  - Include a brief next-steps note
+  - Be concise (under 100 words)
+
+  Return JSON only:
+  {
+    "chosen_slot": "2026-07-01T10:00:00+05:30",
+    "invite_message": "Hi Pragya, ..."
+  }
+
+inputs:
+  - name: candidate
+    type: object
+    description: Parsed candidate profile
+    required: true
+  - name: slots
+    type: array
+    description: List of available ISO-8601 datetime strings
+    required: true
+
+outputs:
+  - chosen_slot    # ISO-8601 datetime string
+  - invite_message # string
+
+# ⚠️  DEMO NOTE:
+# In the current build, the actual send (step 13 in the workflow) is a stub.
+# To enable real sending:
+#   - For email: wire the `gmail` connector in pod.yaml
+#   - For WhatsApp: wire the `twilio_whatsapp` connector in pod.yaml
+# This caused Step 14 failures in workflow runs #019f0e71, #019f0e6c, #019f0e68.

@@ -1,0 +1,33 @@
+name: pravesh-pod
+display_name: "Pravesh Pod — Recruiting Pipeline Co-Pilot"
+description: >
+  An agentic recruiting pipeline that automates the full intake-to-interview
+  loop: resume ingestion, JD scoring, screener routing, and interview scheduling.
+
+# Lemma pod runtime configuration
+runtime:
+  model: claude-sonnet-4-6          # default model for all agents
+  # Bring your own key, or use Lemma's model routing
+  # api_key: ${ANTHROPIC_API_KEY}
+
+# Tables provisioned in this pod
+tables:
+  - candidates
+  - roles
+
+# Workflows registered in this pod
+workflows:
+  - intake_to_interview
+
+# Surfaces (frontend apps)
+surfaces:
+  - name: recruiting-pipeline
+    path: surfaces/recruiting-pipeline
+    url: https://pravesh-recruiting-pipeline-co-pilot.apps.lemma.work
+
+# Connectors (wire real ones to replace demo stubs)
+connectors:
+  # - name: gmail
+  #   type: gmail
+  # - name: twilio_whatsapp
+  #   type: twilio

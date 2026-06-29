@@ -1,0 +1,179 @@
+name: intake_to_interview
+display_name: "Intake to Interview"
+description: >
+  Full 15-step recruiting pipeline: from raw resume ingestion through
+  JD fit scoring, screener routing, and interview slot dispatch.
+
+trigger:
+  # Can be triggered manually, via webhook, or on new candidate record
+  - type: manual
+  - type: table_event
+    table: candidates
+    event: insert
+
+steps:
+
+  # ── INGESTION ────────────────────────────────────────────────────────────────
+  - id: step_01_receive_resume
+    name: "Receive resume"
+    type: function
+    description: Accept uploaded resume file and log source channel (email/whatsapp/referral)
+    outputs:
+      - resume_file
+      - source
+
+  - id: step_02_validate_file
+    name: "Validate file format"
+    type: function
+    description: Ensure the uploaded file is a supported format (txt, pdf, docx)
+    inputs:
+      - resume_file
+    on_failure: stop
+
+  - id: step_03_create_candidate_record
+    name: "Create candidate record"
+    type: data_write
+    table: candidates
+    action: insert
+    fields:
+      resume_file: "{{step_01_receive_resume.resume_file}}"
+      source: "{{step_01_receive_resume.source}}"
+      status: screening
+
+  # ── PARSING ──────────────────────────────────────────────────────────────────
+  - id: step_04_parse_resume
+    name: "Parse resume"
+    type: agent
+    agent: resume_parser
+    inputs:
+      - resume_file
+    outputs:
+      - candidate_name
+      - email
+      - phone
+      - years_experience
+      - skills
+      - current_role
+      - current_company
+
+  - id: step_05_update_candidate_profile
+    name: "Update candidate profile"
+    type: data_write
+    table: candidates
+    action: update
+    fields:
+      name: "{{step_04_parse_resume.candidate_name}}"
+      email: "{{step_04_parse_resume.email}}"
+      phone: "{{step_04_parse_resume.phone}}"
+      years_experience: "{{step_04_parse_resume.years_experience}}"
+
+  # ── SCORING ──────────────────────────────────────────────────────────────────
+  - id: step_06_load_job_description
+    name: "Load job description"
+    type: data_read
+    table: roles
+    filter:
+      status: active
+    outputs:
+      - jd_text
+      - role_id
+
+  - id: step_07_score_fit_against_jd
+    name: "Score fit against JD"
+    type: agent
+    agent: jd_scorer
+    inputs:
+      - resume_data: "{{step_04_parse_resume}}"
+      - jd_text: "{{step_06_load_job_description.jd_text}}"
+    outputs:
+      - fit_score        # integer 0–100
+      - score_rationale  # written justification
+
+  - id: step_08_persist_screener_assessment
+    name: "Persist screener assessment"
+    type: data_write
+    table: candidates
+    action: update
+    fields:
+      fit_score: "{{step_07_score_fit_against_jd.fit_score}}"
+      screener_notes: "{{step_07_score_fit_against_jd.score_rationale}}"
+
+  # ── ROUTING ──────────────────────────────────────────────────────────────────
+  - id: step_09_score_gate
+    name: "Score ≥ 60?"
+    type: decision
+    condition: "{{step_07_score_fit_against_jd.fit_score}} >= 60"
+    true_branch: step_10_assign_interview_track
+    false_branch: step_10b_hold_for_recruiter
+
+  - id: step_10b_hold_for_recruiter
+    name: "Held for recruiter (low fit)"
+    type: data_write
+    table: candidates
+    action: update
+    fields:
+      status: held
+    then: end   # workflow ends here for low-fit candidates
+
+  - id: step_10_assign_interview_track
+    name: "Assign to interview track"
+    type: data_write
+    table: candidates
+    action: update
+    fields:
+      status: interview_scheduled
+
+  # ── SCHEDULING ───────────────────────────────────────────────────────────────
+  - id: step_11_fetch_available_slots
+    name: "Fetch available interview slots"
+    type: function
+    description: Query calendar/availability for open slots this week
+    outputs:
+      - available_slots
+
+  - id: step_12_select_best_slot
+    name: "Select best slot"
+    type: agent
+    agent: slot_sender
+    description: Pick the earliest available slot and prepare the invite
+    inputs:
+      - candidate: "{{step_04_parse_resume}}"
+      - slots: "{{step_11_fetch_available_slots.available_slots}}"
+    outputs:
+      - chosen_slot
+      - invite_message
+
+  - id: step_13_send_interview_invite
+    name: "Send interview invite"
+    type: function
+    description: >
+      Dispatch interview invitation via candidate's intake channel
+      (email via Gmail connector, or WhatsApp via Twilio connector).
+    inputs:
+      - channel: "{{step_01_receive_resume.source}}"
+      - recipient_email: "{{step_04_parse_resume.email}}"
+      - recipient_phone: "{{step_04_parse_resume.phone}}"
+      - message: "{{step_12_select_best_slot.invite_message}}"
+    # NOTE: In demo builds, wire a real connector here to avoid Step 14 failure.
+    # on_failure: continue   # uncomment to make non-fatal during demo
+
+  - id: step_14_mark_slot_sent
+    name: "Mark slot sent (demo stub)"
+    type: data_write
+    table: candidates
+    action: update
+    fields:
+      slot_sent: true
+      slot_time: "{{step_12_select_best_slot.chosen_slot}}"
+    # ⚠️  This step failed in runs #019f0e71, #019f0e6c, #019f0e68
+    # because the send_interview_invite step (step 13) was a stub.
+    # Fix: wire a real connector in step 13, or set on_failure: continue above.
+
+  - id: step_15_notify_recruiter
+    name: "Notify recruiter"
+    type: function
+    description: Send a Slack/email summary to the recruiter with the day's pipeline update
+    inputs:
+      - candidate_name: "{{step_04_parse_resume.candidate_name}}"
+      - fit_score: "{{step_07_score_fit_against_jd.fit_score}}"
+      - slot: "{{step_12_select_best_slot.chosen_slot}}"

@@ -1,0 +1,28 @@
+name: Validate Pod Config
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Lemma CLI
+        run: pip install lemma-terminal
+
+      - name: Validate pod.yaml
+        run: lemma pod validate pod.yaml
+
+      - name: Validate workflow YAML
+        run: lemma workflow validate workflows/intake_to_interview.yaml
+
+      - name: Validate agent configs
+        run: |
+          lemma agent validate agents/resume_parser.yaml
+          lemma agent validate agents/jd_scorer.yaml
+          lemma agent validate agents/slot_sender.yaml

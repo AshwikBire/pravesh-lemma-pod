@@ -1,0 +1,49 @@
+# Job Description: Senior Backend Engineer — Platform Team
+
+**Location:** Bengaluru (Hybrid)
+**Level:** Senior / Staff
+**Team:** Platform
+
+---
+
+## About the Role
+
+We are looking for a Senior Backend Engineer to join our Platform team in Bengaluru.
+You will own and evolve the payment-orchestration service — a high-throughput,
+reliability-critical system that processes millions of transactions daily.
+
+---
+
+## What You'll Do
+
+- Design and implement distributed backend services in **Go** with **gRPC**
+- Own reliability, observability, and on-call for the payment orchestration layer
+- Drive migrations from legacy monolith patterns to service-mesh architecture
+- Collaborate with product and data teams on new payment rail integrations
+- Mentor junior engineers and contribute to engineering standards
+
+---
+
+## Requirements
+
+- **7+ years** of backend engineering experience
+- Strong proficiency in **Go** (primary) or Python (secondary)
+- Production experience with **gRPC**, Protobuf, and service mesh patterns
+- Experience at a **fintech or payments company** strongly preferred
+- Proven ownership of a high-availability distributed system
+- Strong understanding of observability: tracing, metrics, alerting
+
+---
+
+## Nice to Have
+
+- Experience with **PostgreSQL**, Redis, Kafka
+- Prior **Staff or Tech Lead** experience
+- Background in **payment orchestration**, ledgers, or settlement systems
+
+---
+
+## Compensation
+
+- Competitive base + equity
+- Bengaluru hybrid (2–3 days/week in office)
